@@ -1,0 +1,7 @@
+{
+  "name": "Golf Live Scoring",
+  "description": "A web application to track live golf scores for up to 4 players across various game formats like Stableford, Medal, and Skins. Includes a live dashboard to follow the game in real-time.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
