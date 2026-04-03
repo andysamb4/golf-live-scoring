@@ -2,7 +2,7 @@
 // Fix: Implemented the SetupScreen component to allow game configuration.
 import React, { useState, useEffect } from 'react';
 import { Player, GameSettings, GameType, Course, TeeSet, Group } from '../types';
-import { SAMPLE_COURSE } from '../constants';
+import { BRAMPTON_HEATH } from '../constants';
 import PlayerSetupCard from './PlayerSetupCard';
 import { calculatePlayingHandicap } from '../services/scoringService';
 import { UserGroupIcon } from './icons/UserGroupIcon';
@@ -43,7 +43,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
     { id: `PLY-${Date.now() + 1}`, name: 'Player 2', handicap: 10 },
   ]);
   const [gameType, setGameType] = useState<GameType>(GameType.Stableford);
-  const [course, setCourse] = useState<Course>(SAMPLE_COURSE);
+  const [course, setCourse] = useState<Course>(BRAMPTON_HEATH);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
 
   // Group game state
@@ -190,7 +190,14 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
           </h2>
           <div className="bg-dark-slate p-4 rounded-md text-center space-y-3">
             <div>
-              <p className="text-xl font-semibold">{course.name}</p>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <p className="text-xl font-semibold">{course.name}</p>
+                {course.id === 'brampton-heath-golf-centre' && (
+                  <span className="px-2 py-0.5 bg-forest-green text-white text-[10px] uppercase tracking-wider font-bold rounded-full shadow-sm">
+                    Home Course
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-400">{course.holes.length} Holes • Par {totalPar}</p>
               {(course.slopeRating || course.courseRating) && (
                 <p className="text-xs text-gray-500 mt-1">
