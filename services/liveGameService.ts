@@ -1,4 +1,4 @@
-import { doc, setDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, updateDoc, Unsubscribe, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebaseService';
 import { GameState, LiveGameData } from '../types';
 
@@ -47,6 +47,14 @@ export const syncGameToFirestore = async (gameCode: string, gameState: GameState
     players: gameState.players,
     updatedAt: Date.now(),
   });
+};
+
+/** Fetch all currently active (playing) games */
+export const listLiveGames = async (): Promise<LiveGameData[]> => {
+  const gamesCol = collection(db, 'games');
+  const q = query(gamesCol, where('status', '==', 'playing'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => d.data() as LiveGameData);
 };
 
 /** Subscribe to real-time updates for a live game. Returns an unsubscribe function. */

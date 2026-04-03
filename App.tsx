@@ -4,6 +4,7 @@ import SetupScreen from './components/SetupScreen';
 import ScoringScreen from './components/ScoringScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import GroupManagementScreen from './components/GroupManagementScreen';
+import WatchLiveScreen from './components/WatchLiveScreen';
 import { GolfFlagIcon } from './components/icons/GolfFlagIcon';
 import { decodeGameState } from './services/shareService';
 import SpectatorScreen from './components/SpectatorScreen';
@@ -266,9 +267,11 @@ const App: React.FC = () => {
         return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} />;
       case 'groups':
         return <GroupManagementScreen onBack={() => setView('setup')} />;
+      case 'watch':
+        return <WatchLiveScreen onBack={() => setView('setup')} />;
       case 'setup':
       default:
-        return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} />;
+        return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} onWatchLive={() => setView('watch')} />;
     }
   };
 

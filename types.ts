@@ -57,7 +57,7 @@ export interface GameState extends GameSettings {
   groupId?: string;
 }
 
-export type View = 'setup' | 'scoring' | 'leaderboard' | 'groups';
+export type View = 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch';
 
 /** A member of a handicap group */
 export interface GroupMember {

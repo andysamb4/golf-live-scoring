@@ -5,6 +5,7 @@ import { calculateScores } from '../services/scoringService';
 import { isSpeechRecognitionSupported, startListening, parseSpokenScore } from '../services/speechService';
 import { TrophyIcon } from './icons/TrophyIcon';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
+import { ShareIcon } from './icons/ShareIcon';
 
 interface ScoringScreenProps {
   gameState: GameState;
@@ -28,6 +29,7 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
   const [currentHole, setCurrentHole] = useState(gameState.currentHole);
   const [listeningState, setListeningState] = useState<ListeningState>({ isListening: false, playerId: null, statusText: '', error: null });
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const speechSupported = isSpeechRecognitionSupported();
   
   const calculatedScores = useMemo(() => calculateScores(gameState), [gameState]);
@@ -116,6 +118,25 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
             </button>
           )}
         </div>
+      )}
+      {liveGameCode && (
+        <button
+          onClick={() => {
+            const url = `${window.location.origin}${window.location.pathname}#/live/${liveGameCode}`;
+            if (navigator.share) {
+              navigator.share({ title: 'Watch Live Golf Scores', url }).catch(() => {});
+            } else {
+              navigator.clipboard.writeText(url).then(() => {
+                setShareCopied(true);
+                setTimeout(() => setShareCopied(false), 2500);
+              }).catch(() => alert('Could not copy link'));
+            }
+          }}
+          className="w-full p-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors"
+        >
+          <ShareIcon className="w-5 h-5" />
+          {shareCopied ? 'Link Copied!' : 'Share Live Scorecard'}
+        </button>
       )}
       <div className="bg-medium-slate p-4 rounded-lg shadow-lg flex justify-between items-center">
         <button onClick={handlePrevHole} disabled={currentHole === 0} className="px-4 py-2 bg-light-slate rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
