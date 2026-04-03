@@ -1,6 +1,10 @@
 import { Group, GroupMember, GroupHandicapRules, GroupGameRecord } from '../types';
-
-const STORAGE_KEY = 'golf_groups';
+import {
+  loadGroupsFromDb,
+  saveGroupToDb,
+  deleteGroupFromDb,
+  getGroupFromDb,
+} from './firebaseService';
 
 const DEFAULT_RULES: GroupHandicapRules = {
   first: -1,
@@ -11,29 +15,14 @@ const DEFAULT_RULES: GroupHandicapRules = {
 
 export const getDefaultRules = (): GroupHandicapRules => ({ ...DEFAULT_RULES });
 
-/** Load all groups from localStorage */
-export const loadGroups = (): Group[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-};
+/** Load all groups from Firestore */
+export const loadGroups = (): Promise<Group[]> => loadGroupsFromDb();
 
-/** Save all groups to localStorage */
-const saveGroups = (groups: Group[]): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
-};
+/** Get a single group by ID from Firestore */
+export const getGroup = (id: string): Promise<Group | undefined> => getGroupFromDb(id);
 
-/** Get a single group by ID */
-export const getGroup = (id: string): Group | undefined => {
-  return loadGroups().find(g => g.id === id);
-};
-
-/** Create a new group */
-export const createGroup = (name: string, members: GroupMember[]): Group => {
-  const groups = loadGroups();
+/** Create a new group and save it to Firestore */
+export const createGroup = async (name: string, members: GroupMember[]): Promise<Group> => {
   const group: Group = {
     id: `GRP-${Date.now()}`,
     name,
@@ -42,25 +31,18 @@ export const createGroup = (name: string, members: GroupMember[]): Group => {
     gameHistory: [],
     createdAt: new Date().toISOString(),
   };
-  groups.push(group);
-  saveGroups(groups);
+  await saveGroupToDb(group);
   return group;
 };
 
-/** Update an existing group */
-export const updateGroup = (updated: Group): void => {
-  const groups = loadGroups();
-  const idx = groups.findIndex(g => g.id === updated.id);
-  if (idx >= 0) {
-    groups[idx] = updated;
-    saveGroups(groups);
-  }
+/** Update an existing group in Firestore */
+export const updateGroup = async (updated: Group): Promise<void> => {
+  await saveGroupToDb(updated);
 };
 
-/** Delete a group by ID */
-export const deleteGroup = (id: string): void => {
-  const groups = loadGroups().filter(g => g.id !== id);
-  saveGroups(groups);
+/** Delete a group by ID from Firestore */
+export const deleteGroup = async (id: string): Promise<void> => {
+  await deleteGroupFromDb(id);
 };
 
 /**
@@ -78,12 +60,12 @@ export const getAdjustment = (position: number, rules: GroupHandicapRules): numb
  * `finishingOrder` is an array of member names from 1st place to last.
  * Returns the updated group.
  */
-export const applyGroupGameResult = (
+export const applyGroupGameResult = async (
   groupId: string,
   courseName: string,
   finishingOrder: string[],
-): Group | undefined => {
-  const group = getGroup(groupId);
+): Promise<Group | undefined> => {
+  const group = await getGroup(groupId);
   if (!group) return undefined;
 
   const adjustments: { [name: string]: number } = {};
@@ -107,6 +89,6 @@ export const applyGroupGameResult = (
   };
   group.gameHistory.push(record);
 
-  updateGroup(group);
+  await updateGroup(group);
   return group;
 };

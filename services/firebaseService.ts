@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, setDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Course, TeeSet } from '../types';
+import { getFirestore, collection, getDocs, setDoc, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { Course, TeeSet, Group } from '../types';
 
 // Web app config from the MCP we just provisioned!
 const firebaseConfig = {
@@ -112,3 +112,53 @@ export const getCourseById = async (id: string): Promise<Course | null> => {
 };
 
 export { db };
+
+// ─── Groups Collection ────────────────────────────────────────────────────────
+
+const groupsCollection = collection(db, 'groups');
+
+/** Load all groups from Firestore */
+export const loadGroupsFromDb = async (): Promise<Group[]> => {
+  try {
+    const snapshot = await getDocs(groupsCollection);
+    return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Group));
+  } catch (error) {
+    console.error('Error loading groups from DB:', error);
+    return [];
+  }
+};
+
+/** Create or overwrite a group document in Firestore */
+export const saveGroupToDb = async (group: Group): Promise<void> => {
+  try {
+    const docRef = doc(db, 'groups', group.id);
+    await setDoc(docRef, group);
+  } catch (error) {
+    console.error('Error saving group to DB:', error);
+    throw error;
+  }
+};
+
+/** Delete a group document from Firestore */
+export const deleteGroupFromDb = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, 'groups', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting group from DB:', error);
+    throw error;
+  }
+};
+
+/** Fetch a single group document from Firestore */
+export const getGroupFromDb = async (id: string): Promise<Group | undefined> => {
+  try {
+    const docRef = doc(db, 'groups', id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return undefined;
+    return { ...snap.data(), id } as Group;
+  } catch (error) {
+    console.error('Error fetching group from DB:', error);
+    return undefined;
+  }
+};

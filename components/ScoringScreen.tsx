@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { GameState, View, Player } from '../types';
+import type { SyncStatus } from '../App';
 import { calculateScores } from '../services/scoringService';
 import { isSpeechRecognitionSupported, startListening, parseSpokenScore } from '../services/speechService';
 import { TrophyIcon } from './icons/TrophyIcon';
@@ -12,6 +13,8 @@ interface ScoringScreenProps {
   onNavigate: (view: View) => void;
   onEndGame: () => void;
   liveGameCode?: string | null;
+  syncStatus?: SyncStatus;
+  onRetrySync?: () => void;
 }
 
 type ListeningState = {
@@ -21,7 +24,7 @@ type ListeningState = {
   error: string | null;
 };
 
-const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, onUpdateScore, onNavigate, onEndGame, liveGameCode }) => {
+const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, onUpdateScore, onNavigate, onEndGame, liveGameCode, syncStatus, onRetrySync }) => {
   const [currentHole, setCurrentHole] = useState(gameState.currentHole);
   const [listeningState, setListeningState] = useState<ListeningState>({ isListening: false, playerId: null, statusText: '', error: null });
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -85,7 +88,7 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
 
   return (
     <div className="space-y-6">
-      {liveGameCode && (
+      {liveGameCode && syncStatus === 'synced' && (
         <div className="bg-green-900 border border-green-600 p-3 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-2 text-green-300 text-sm font-semibold">
             <span className="relative flex h-2.5 w-2.5">
@@ -95,6 +98,23 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
             Live &middot; Code: <span className="font-mono">{liveGameCode}</span>
           </div>
           <span className="text-green-400 text-xs">Scores syncing in real-time</span>
+        </div>
+      )}
+      {syncStatus === 'syncing' && (
+        <div className="bg-yellow-900 border border-yellow-600 p-3 rounded-lg flex items-center justify-between">
+          <span className="text-yellow-300 text-sm font-semibold">Syncing to cloud...</span>
+        </div>
+      )}
+      {(syncStatus === 'local-only' || syncStatus === 'error') && (
+        <div className="bg-red-900 border border-red-600 p-3 rounded-lg flex items-center justify-between">
+          <div className="text-red-300 text-sm font-semibold">
+            {syncStatus === 'error' ? 'Cloud sync failed' : 'Local only'} &mdash; scores saved on this device
+          </div>
+          {onRetrySync && (
+            <button onClick={onRetrySync} className="px-3 py-1 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded-md transition-colors">
+              Sync Now
+            </button>
+          )}
         </div>
       )}
       <div className="bg-medium-slate p-4 rounded-lg shadow-lg flex justify-between items-center">

@@ -50,19 +50,28 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups }
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedMemberNames, setSelectedMemberNames] = useState<Set<string>>(new Set());
+  const [groupsLoading, setGroupsLoading] = useState(false);
 
   useEffect(() => {
-    setGroups(loadGroups());
+    loadGroups().then(setGroups).catch(console.error);
   }, []);
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? null;
 
-  const handleGroupToggle = (on: boolean) => {
+  const handleGroupToggle = async (on: boolean) => {
     setIsGroupGame(on);
     if (on) {
-      setGroups(loadGroups()); // refresh
-      if (!selectedGroupId && groups.length > 0) {
-        handleSelectGroup(groups[0].id);
+      setGroupsLoading(true);
+      try {
+        const refreshed = await loadGroups();
+        setGroups(refreshed);
+        if (!selectedGroupId && refreshed.length > 0) {
+          handleSelectGroup(refreshed[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setGroupsLoading(false);
       }
     } else {
       setSelectedGroupId(null);
@@ -248,7 +257,9 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups }
 
             {isGroupGame && (
               <>
-                {groups.length === 0 ? (
+                {groupsLoading ? (
+                  <div className="text-center py-4 text-gray-400 animate-pulse">Loading groups…</div>
+                ) : groups.length === 0 ? (
                   <div className="text-center py-4 text-gray-400">
                     <p className="mb-2">No groups created yet.</p>
                     <button

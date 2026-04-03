@@ -12,12 +12,26 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
   const [groups, setGroups] = useState<Group[]>([]);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshGroups = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const loaded = await loadGroups();
+      setGroups(loaded);
+    } catch {
+      setError('Failed to load groups. Check your connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setGroups(loadGroups());
+    refreshGroups();
   }, []);
-
-  const refreshGroups = () => setGroups(loadGroups());
 
   const handleCreateNew = () => {
     setEditingGroup({
@@ -34,7 +48,7 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
     setIsCreating(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingGroup) return;
     const validMembers = editingGroup.members.filter(m => m.name.trim() !== '');
     if (!editingGroup.name.trim()) {
@@ -46,20 +60,33 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
       return;
     }
 
-    if (isCreating) {
-      createGroup(editingGroup.name.trim(), validMembers);
-    } else {
-      updateGroup({ ...editingGroup, members: validMembers });
+    setIsSaving(true);
+    setError(null);
+    try {
+      if (isCreating) {
+        await createGroup(editingGroup.name.trim(), validMembers);
+      } else {
+        await updateGroup({ ...editingGroup, members: validMembers });
+      }
+      setEditingGroup(null);
+      setIsCreating(false);
+      await refreshGroups();
+    } catch {
+      setError('Failed to save group. Check your connection.');
+    } finally {
+      setIsSaving(false);
     }
-    setEditingGroup(null);
-    setIsCreating(false);
-    refreshGroups();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Delete this group? This cannot be undone.')) {
-      deleteGroup(id);
-      refreshGroups();
+      setError(null);
+      try {
+        await deleteGroup(id);
+        await refreshGroups();
+      } catch {
+        setError('Failed to delete group. Check your connection.');
+      }
     }
   };
 
@@ -70,7 +97,6 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
       updated[index] = { ...updated[index], name: value as string };
     } else if (field === 'whsHandicap') {
       const hcp = Number(value) || 0;
-      // If this is a new member (creating or member has no games), sync group handicap to WHS
       const isNewMember = isCreating || editingGroup.gameHistory.length === 0;
       updated[index] = {
         ...updated[index],
@@ -113,6 +139,12 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
           <h2 className="text-2xl font-bold mb-4 text-center text-light-green">
             {isCreating ? 'Create New Group' : `Edit: ${editingGroup.name}`}
           </h2>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-900 border border-red-500 rounded-md text-red-200 text-sm">
+              {error}
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -211,14 +243,16 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
             <button
               onClick={() => { setEditingGroup(null); setIsCreating(false); }}
               className="flex-1 p-3 bg-light-slate hover:bg-gray-500 rounded-md font-semibold"
+              disabled={isSaving}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 p-3 bg-forest-green hover:bg-green-700 text-white font-bold rounded-md"
+              className="flex-1 p-3 bg-forest-green hover:bg-green-700 text-white font-bold rounded-md disabled:opacity-50"
+              disabled={isSaving}
             >
-              {isCreating ? 'Create Group' : 'Save Changes'}
+              {isSaving ? 'Saving…' : isCreating ? 'Create Group' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -258,7 +292,17 @@ const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({ onBack })
           <UserGroupIcon className="h-6 w-6" /> Manage Groups
         </h2>
 
-        {groups.length === 0 ? (
+        {error && (
+          <div className="mb-4 p-3 bg-red-900 border border-red-500 rounded-md text-red-200 text-sm">
+            {error}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-lg animate-pulse">Loading groups…</p>
+          </div>
+        ) : groups.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p className="text-lg mb-2">No groups yet</p>
             <p className="text-sm">Create a group to track handicaps across regular games.</p>

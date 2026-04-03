@@ -11,13 +11,34 @@ import { createLiveGame, syncGameToFirestore, subscribeToLiveGame } from './serv
 import { applyGroupGameResult } from './services/groupService';
 import { calculateScores } from './services/scoringService';
 
+const STORAGE_KEY_GAME = 'golf_active_game';
+const STORAGE_KEY_CODE = 'golf_live_code';
+const STORAGE_KEY_VIEW = 'golf_view';
+
+const loadFromStorage = <T,>(key: string): T | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+
+const saveToStorage = (key: string, value: unknown) => {
+  try {
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(value));
+  } catch { /* quota exceeded – ignore */ }
+};
+
+export type SyncStatus = 'synced' | 'local-only' | 'syncing' | 'error';
+
 const App: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(() => loadFromStorage<GameState>(STORAGE_KEY_GAME));
   const [spectatorGameState, setSpectatorGameState] = useState<GameState | null>(null);
-  const [liveGameCode, setLiveGameCode] = useState<string | null>(null);
+  const [liveGameCode, setLiveGameCode] = useState<string | null>(() => loadFromStorage<string>(STORAGE_KEY_CODE));
   const [liveSpectatorData, setLiveSpectatorData] = useState<LiveGameData | null>(null);
   const [liveSpectatorError, setLiveSpectatorError] = useState<string | null>(null);
-  const [view, setView] = useState<View>('setup');
+  const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'setup');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => loadFromStorage<string>(STORAGE_KEY_CODE) ? 'synced' : 'local-only');
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -79,6 +100,31 @@ const App: React.FC = () => {
   }, []);
 
 
+  // Persist gameState, liveGameCode, and view to localStorage
+  useEffect(() => { saveToStorage(STORAGE_KEY_GAME, gameState); }, [gameState]);
+  useEffect(() => { saveToStorage(STORAGE_KEY_CODE, liveGameCode); }, [liveGameCode]);
+  useEffect(() => { saveToStorage(STORAGE_KEY_VIEW, view); }, [view]);
+
+  // On mount: if we have a restored game but no liveGameCode, attempt cloud sync
+  useEffect(() => {
+    if (gameState && !liveGameCode && gameState.status === 'playing') {
+      setSyncStatus('local-only');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRetrySync = useCallback(async () => {
+    if (!gameState || liveGameCode) return;
+    setSyncStatus('syncing');
+    try {
+      const code = await createLiveGame(gameState);
+      setLiveGameCode(code);
+      setSyncStatus('synced');
+    } catch (err) {
+      console.error('Retry sync failed:', err);
+      setSyncStatus('error');
+    }
+  }, [gameState, liveGameCode]);
+
   const handleStartGame = useCallback(async (settings: GameSettings) => {
     const initialScores: { [playerId:string]: (number | null)[] } = {};
     settings.players.forEach(p => {
@@ -98,11 +144,14 @@ const App: React.FC = () => {
     window.location.hash = '';
 
     // Create the live game in Firestore
+    setSyncStatus('syncing');
     try {
       const code = await createLiveGame(newGameState);
       setLiveGameCode(code);
+      setSyncStatus('synced');
     } catch (err) {
       console.error('Failed to create live game:', err);
+      setSyncStatus('error');
     }
   }, []);
 
@@ -129,12 +178,12 @@ const App: React.FC = () => {
     setView(newView);
   }, []);
 
-  const handleEndGame = useCallback(() => {
+  const handleEndGame = useCallback(async () => {
     // Apply group handicap adjustments if this was a group game
     if (gameState?.groupId) {
       const scores = calculateScores(gameState);
       const finishingOrder = scores.map(s => s.playerName);
-      const updatedGroup = applyGroupGameResult(gameState.groupId, gameState.course.name, finishingOrder);
+      const updatedGroup = await applyGroupGameResult(gameState.groupId, gameState.course.name, finishingOrder);
       if (updatedGroup) {
         const adjustmentsSummary = finishingOrder.map((name, i) => {
           const adj = updatedGroup.members.find(m => m.name === name);
@@ -146,6 +195,8 @@ const App: React.FC = () => {
       }
     }
     setGameState(null);
+    setLiveGameCode(null);
+    setSyncStatus('local-only');
     setView('setup');
   }, [gameState]);
 
@@ -199,7 +250,7 @@ const App: React.FC = () => {
     switch (view) {
       case 'scoring':
         if (gameState) {
-          return <ScoringScreen gameState={gameState} onUpdateScore={handleUpdateScore} onNavigate={handleNavigate} setGameState={handleSetGameState} onEndGame={handleEndGame} liveGameCode={liveGameCode} />;
+          return <ScoringScreen gameState={gameState} onUpdateScore={handleUpdateScore} onNavigate={handleNavigate} setGameState={handleSetGameState} onEndGame={handleEndGame} liveGameCode={liveGameCode} syncStatus={syncStatus} onRetrySync={handleRetrySync} />;
         }
         return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} />;
       case 'leaderboard':
