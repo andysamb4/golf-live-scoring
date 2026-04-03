@@ -1,5 +1,6 @@
 import React from 'react';
-import { GameState } from '../types';
+import { GameState, GameType } from '../types';
+import { calculatePlayingHandicap } from '../services/scoringService';
 
 interface ScorecardProps {
   gameState: GameState;
@@ -7,6 +8,7 @@ interface ScorecardProps {
 
 const Scorecard: React.FC<ScorecardProps> = ({ gameState }) => {
   const { course, players, scores } = gameState;
+  const isMatchPlay = gameState.gameType === GameType.MatchPlay;
   const frontNineHoles = course.holes.slice(0, 9);
   const backNineHoles = course.holes.slice(9, 18);
 
@@ -62,6 +64,60 @@ const Scorecard: React.FC<ScorecardProps> = ({ gameState }) => {
               </tr>
             );
           })}
+          {isMatchPlay && players.length === 2 && (() => {
+            const [p1, p2] = players;
+            const ph1 = calculatePlayingHandicap(p1.handicap, course, p1.selectedTee);
+            const ph2 = calculatePlayingHandicap(p2.handicap, course, p2.selectedTee);
+            const handicapDiff = Math.abs(ph1 - ph2);
+
+            // Calculate per-hole match result and running match score
+            let runningScore = 0;
+            const holeResults: string[] = [];
+            let matchOver = false;
+
+            for (let i = 0; i < 18; i++) {
+              if (matchOver) { holeResults.push(''); continue; }
+              const s1 = scores[p1.id][i];
+              const s2 = scores[p2.id][i];
+              if (s1 === null || s1 === 0 || s2 === null || s2 === 0) { holeResults.push(''); continue; }
+
+              let net1 = s1;
+              let net2 = s2;
+              if (ph1 > ph2) {
+                const base = Math.floor(handicapDiff / 18);
+                const extra = handicapDiff % 18;
+                net1 -= base + (course.holes[i].strokeIndex <= extra ? 1 : 0);
+              } else if (ph2 > ph1) {
+                const base = Math.floor(handicapDiff / 18);
+                const extra = handicapDiff % 18;
+                net2 -= base + (course.holes[i].strokeIndex <= extra ? 1 : 0);
+              }
+
+              if (net1 < net2) { runningScore++; holeResults.push(p1.name.charAt(0)); }
+              else if (net2 < net1) { runningScore--; holeResults.push(p2.name.charAt(0)); }
+              else { holeResults.push('='); }
+
+              const holesRemaining = 18 - (i + 1);
+              if (Math.abs(runningScore) > holesRemaining) matchOver = true;
+            }
+
+            return (
+              <tr className="bg-blue-900 border-t-2 border-blue-400 font-bold">
+                <td className="p-2 border-r border-light-slate text-left text-blue-300">Match</td>
+                {holeResults.slice(0, 9).map((r, i) => (
+                  <td key={i} className={`p-2 ${r === p1.name.charAt(0) ? 'text-green-400' : r === p2.name.charAt(0) ? 'text-red-400' : r === '=' ? 'text-gray-400' : ''}`}>{r || '-'}</td>
+                ))}
+                <td className="p-2 bg-blue-800 text-blue-300">-</td>
+                {holeResults.slice(9, 18).map((r, i) => (
+                  <td key={i + 9} className={`p-2 ${r === p1.name.charAt(0) ? 'text-green-400' : r === p2.name.charAt(0) ? 'text-red-400' : r === '=' ? 'text-gray-400' : ''}`}>{r || '-'}</td>
+                ))}
+                <td className="p-2 bg-blue-800 text-blue-300">-</td>
+                <td className="p-2 bg-blue-800 text-blue-300">
+                  {runningScore > 0 ? `${p1.name.charAt(0)} ${runningScore} Up` : runningScore < 0 ? `${p2.name.charAt(0)} ${Math.abs(runningScore)} Up` : 'A/S'}
+                </td>
+              </tr>
+            );
+          })()}
         </tbody>
       </table>
     </div>

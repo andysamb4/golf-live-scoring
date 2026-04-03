@@ -38,6 +38,7 @@ export enum GameType {
   Stableford = 'Stableford',
   Medal = 'Medal',
   Skins = 'Skins',
+  MatchPlay = 'Match Play',
 }
 
 export interface GameSettings {
@@ -114,6 +115,7 @@ export interface CalculatedScore {
   playerName: string;
   total: number;
   through: number;
+  matchStatus?: string;
 }
 
 export interface Source {

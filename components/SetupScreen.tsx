@@ -163,16 +163,20 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
       ...p,
       playingHandicap: calculatePlayingHandicap(p.handicap, course),
     }));
-    if (validPlayers.length > 0) {
-      onStartGame({
-        players: validPlayers,
-        course,
-        gameType,
-        groupId: isGroupGame && selectedGroupId ? selectedGroupId : undefined,
-      });
-    } else {
+    if (validPlayers.length === 0) {
       alert("Please enter at least one player's name.");
+      return;
     }
+    if (gameType === GameType.MatchPlay && validPlayers.length !== 2) {
+      alert('Match Play requires exactly 2 players.');
+      return;
+    }
+    onStartGame({
+      players: validPlayers,
+      course,
+      gameType,
+      groupId: isGroupGame && selectedGroupId ? selectedGroupId : undefined,
+    });
   };
 
   const totalPar = course.holes.reduce((acc, h) => acc + h.par, 0);
@@ -333,7 +337,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
           <h2 className="text-2xl font-bold mb-4 text-center text-light-green flex items-center justify-center gap-2">
               <StarIcon className="h-6 w-6"/> Game Format
           </h2>
-          <div className="grid grid-cols-3 gap-2 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
               {Object.values(GameType).map(type => (
                   <button
                       key={type}
@@ -348,6 +352,9 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
                   </button>
               ))}
           </div>
+          {gameType === GameType.MatchPlay && (
+            <p className="text-sm text-yellow-400 mt-2 text-center">Match Play requires exactly 2 players</p>
+          )}
         </div>
 
         {/* Manual Players section — hidden when group game is active */}

@@ -101,6 +101,72 @@ const calculateSkinsTotal = (gameState: GameState): CalculatedScore[] => {
     }));
 };
 
+const calculateMatchPlayTotal = (gameState: GameState): CalculatedScore[] => {
+    const [p1, p2] = gameState.players;
+    const course = gameState.course;
+
+    // In match play, only the difference in playing handicaps matters
+    const ph1 = calculatePlayingHandicap(p1.handicap, course, p1.selectedTee);
+    const ph2 = calculatePlayingHandicap(p2.handicap, course, p2.selectedTee);
+    const handicapDiff = Math.abs(ph1 - ph2);
+
+    let matchScore = 0; // positive = p1 leading
+    let holesPlayed = 0;
+    let matchOver = false;
+    let finalResult = '';
+
+    for (let i = 0; i < 18; i++) {
+        if (matchOver) break;
+
+        const s1 = gameState.scores[p1.id][i];
+        const s2 = gameState.scores[p2.id][i];
+        if (s1 === null || s1 === 0 || s2 === null || s2 === 0) break;
+
+        holesPlayed++;
+        const hole = course.holes[i];
+
+        // Allocate strokes based on stroke index using the handicap difference
+        let net1 = s1;
+        let net2 = s2;
+
+        if (ph1 > ph2) {
+            // p1 receives strokes
+            const baseShots = Math.floor(handicapDiff / 18);
+            const extraShotHoles = handicapDiff % 18;
+            net1 -= baseShots + (hole.strokeIndex <= extraShotHoles ? 1 : 0);
+        } else if (ph2 > ph1) {
+            // p2 receives strokes
+            const baseShots = Math.floor(handicapDiff / 18);
+            const extraShotHoles = handicapDiff % 18;
+            net2 -= baseShots + (hole.strokeIndex <= extraShotHoles ? 1 : 0);
+        }
+
+        if (net1 < net2) matchScore++;
+        else if (net2 < net1) matchScore--;
+        // else: halved
+
+        const holesRemaining = 18 - holesPlayed;
+        if (Math.abs(matchScore) > holesRemaining) {
+            matchOver = true;
+            finalResult = `${Math.abs(matchScore)}&${holesRemaining}`;
+        }
+    }
+
+    const getStatus = (forP1: boolean): string => {
+        const s = forP1 ? matchScore : -matchScore;
+        if (matchOver) return s > 0 ? `Won ${finalResult}` : `Lost ${finalResult}`;
+        if (holesPlayed === 18 && matchScore === 0) return 'Halved';
+        if (s > 0) return `${s} Up`;
+        if (s < 0) return `${Math.abs(s)} Down`;
+        return 'All Square';
+    };
+
+    return [
+        { playerId: p1.id, playerName: p1.name, total: matchScore, through: holesPlayed, matchStatus: getStatus(true) },
+        { playerId: p2.id, playerName: p2.name, total: -matchScore, through: holesPlayed, matchStatus: getStatus(false) },
+    ].sort((a, b) => b.total - a.total);
+};
+
 export const calculateScores = (gameState: GameState): CalculatedScore[] => {
     switch (gameState.gameType) {
         case GameType.Stableford:
@@ -113,6 +179,8 @@ export const calculateScores = (gameState: GameState): CalculatedScore[] => {
                 .sort((a, b) => a.total - b.total);
         case GameType.Skins:
              return calculateSkinsTotal(gameState).sort((a,b) => b.total - a.total);
+        case GameType.MatchPlay:
+             return calculateMatchPlayTotal(gameState);
         default:
             return [];
     }

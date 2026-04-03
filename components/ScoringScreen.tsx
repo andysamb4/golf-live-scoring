@@ -200,9 +200,18 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
                         <span className="truncate">{score.playerName}</span>
                     </div>
                     <div className="text-right">
-                        <span className="font-bold text-xl text-light-green">{score.total}</span>
-                         <span className="text-xs text-gray-400 ml-1">({gameState.gameType === 'Medal' ? 'Strokes' : 'Pts'})</span>
-                         <span className="text-xs text-gray-400 block">Thru {score.through}</span>
+                        {gameState.gameType === 'Match Play' ? (
+                          <>
+                            <span className={`font-bold text-xl ${score.total > 0 ? 'text-light-green' : score.total < 0 ? 'text-red-400' : 'text-gray-300'}`}>{score.matchStatus}</span>
+                            <span className="text-xs text-gray-400 block">Thru {score.through}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-bold text-xl text-light-green">{score.total}</span>
+                            <span className="text-xs text-gray-400 ml-1">({gameState.gameType === 'Medal' ? 'Strokes' : 'Pts'})</span>
+                            <span className="text-xs text-gray-400 block">Thru {score.through}</span>
+                          </>
+                        )}
                     </div>
                 </div>
             ))}

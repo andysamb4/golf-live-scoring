@@ -11,7 +11,8 @@ interface SpectatorScreenProps {
 
 const SpectatorScreen: React.FC<SpectatorScreenProps> = ({ gameState, isLive = false }) => {
     const calculatedScores = useMemo(() => calculateScores(gameState), [gameState]);
-    const scoreLabel = gameState.gameType === 'Medal' ? 'Strokes' : gameState.gameType === 'Skins' ? 'Skins' : 'Points';
+    const isMatchPlay = gameState.gameType === 'Match Play';
+    const scoreLabel = isMatchPlay ? '' : gameState.gameType === 'Medal' ? 'Strokes' : gameState.gameType === 'Skins' ? 'Skins' : 'Points';
 
     return (
         <div className="space-y-8">
@@ -60,8 +61,14 @@ const SpectatorScreen: React.FC<SpectatorScreenProps> = ({ gameState, isLive = f
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-3xl font-bold text-light-green">{score.total}</p>
-                        <p className="text-sm text-gray-400">{scoreLabel}</p>
+                        {isMatchPlay ? (
+                          <p className={`text-3xl font-bold ${score.total > 0 ? 'text-light-green' : score.total < 0 ? 'text-red-400' : 'text-gray-300'}`}>{score.matchStatus}</p>
+                        ) : (
+                          <>
+                            <p className="text-3xl font-bold text-light-green">{score.total}</p>
+                            <p className="text-sm text-gray-400">{scoreLabel}</p>
+                          </>
+                        )}
                     </div>
                     </div>
                 ))}
