@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'setup');
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => loadFromStorage<string>(STORAGE_KEY_CODE) ? 'synced' : 'local-only');
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const liveGameCodeRef = useRef<string | null>(liveGameCode);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -99,6 +100,9 @@ const App: React.FC = () => {
     };
   }, []);
 
+
+  // Keep ref in sync so callbacks always see the latest code
+  useEffect(() => { liveGameCodeRef.current = liveGameCode; }, [liveGameCode]);
 
   // Persist gameState, liveGameCode, and view to localStorage
   useEffect(() => { saveToStorage(STORAGE_KEY_GAME, gameState); }, [gameState]);
@@ -163,16 +167,17 @@ const App: React.FC = () => {
       newScores[playerId][holeIndex] = score;
       const updated = { ...prev, scores: newScores };
 
-      // Sync to Firestore in the background
-      if (liveGameCode) {
-        syncGameToFirestore(liveGameCode, updated).catch(err =>
+      // Sync to Firestore in the background (use ref for latest code)
+      const code = liveGameCodeRef.current;
+      if (code) {
+        syncGameToFirestore(code, updated).catch(err =>
           console.error('Failed to sync score:', err)
         );
       }
 
       return updated;
     });
-  }, [liveGameCode]);
+  }, []);
   
   const handleNavigate = useCallback((newView: View) => {
     setView(newView);
@@ -208,14 +213,15 @@ const App: React.FC = () => {
   const handleSetGameState: typeof setGameState = useCallback((action) => {
     setGameState(prev => {
       const next = typeof action === 'function' ? action(prev) : action;
-      if (next && liveGameCode && prev && next.currentHole !== prev.currentHole) {
-        syncGameToFirestore(liveGameCode, next).catch(err =>
+      const code = liveGameCodeRef.current;
+      if (next && code && prev && next.currentHole !== prev.currentHole) {
+        syncGameToFirestore(code, next).catch(err =>
           console.error('Failed to sync hole change:', err)
         );
       }
       return next;
     });
-  }, [liveGameCode]);
+  }, []);
 
   const renderContent = () => {
     // Real-time live spectator
