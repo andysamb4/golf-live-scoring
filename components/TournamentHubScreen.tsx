@@ -49,7 +49,11 @@ const TournamentHubScreen: React.FC<TournamentHubScreenProps> = ({
               <div key={tournament.id} className="bg-dark-slate p-4 rounded-lg flex justify-between items-center border border-gray-700">
                 <div>
                   <h4 className="font-bold text-lg text-white">{tournament.name}</h4>
-                  <p className="text-sm text-gray-400">{tournament.course.name} • {tournament.gameType}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-400">Join Code:</span>
+                    <span className="font-mono text-sm font-bold text-light-green bg-dark-slate px-2 py-0.5 rounded">{tournament.joinCode}</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-1">{tournament.course.name} • {tournament.gameType}</p>
                   <p className="text-xs mt-1">
                     <span className="px-2 py-1 bg-light-slate rounded-full">
                       {tournament.groups.reduce((acc, g) => acc + g.players.length, 0)} Players

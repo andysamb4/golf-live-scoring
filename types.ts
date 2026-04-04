@@ -58,7 +58,7 @@ export interface GameState extends GameSettings {
   groupId?: string;
 }
 
-export type View = 'home' | 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch' | 'tournament-hub' | 'create-tournament';
+export type View = 'home' | 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch' | 'tournament-hub' | 'create-tournament' | 'join-tournament' | 'group-scoring';
 
 /** A member of a handicap group */
 export interface GroupMember {
@@ -129,14 +129,17 @@ export interface TournamentGroup {
   id: string;
   players: Player[];
   teeTime: string; // e.g. "08:00 AM" or "08:00"
+  groupCode: string; // e.g. "ABC12345-G1" — used by groups to enter scores on their own device
 }
 
 export interface Tournament {
   id: string;
+  joinCode: string; // 8-char code used as Firestore doc ID — share to let others join
   name: string;
   course: Course;
   gameType: GameType;
   groups: TournamentGroup[];
+  scores?: { [groupIndex: number]: { [playerId: string]: (number | null)[] } };
   adminId?: string;
   status: 'upcoming' | 'live' | 'finished';
 }

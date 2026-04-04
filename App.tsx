@@ -15,6 +15,8 @@ import { applyGroupGameResult } from './services/groupService';
 import { calculateScores } from './services/scoringService';
 import { createLiveTournament, deleteTournamentFromFirestore } from './services/tournamentService';
 import FrontPageScreen from './components/FrontPageScreen';
+import JoinTournamentScreen from './components/JoinTournamentScreen';
+import GroupScoringScreen from './components/GroupScoringScreen';
 
 const STORAGE_KEY_GAME = 'golf_active_game';
 const STORAGE_KEY_CODE = 'golf_live_code';
@@ -46,6 +48,8 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'home');
   const [tournaments, setTournaments] = useState<Tournament[]>(() => loadFromStorage<Tournament[]>(STORAGE_KEY_TOURNAMENTS) ?? []);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => loadFromStorage<string>(STORAGE_KEY_CODE) ? 'synced' : 'local-only');
+  const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
+  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const liveGameCodeRef = useRef<string | null>(liveGameCode);
 
@@ -294,16 +298,21 @@ const App: React.FC = () => {
             onBack={() => setView('home')}
             onCreateTournament={() => setView('create-tournament')}
             onViewTournament={(id) => {
-               // Future: Open tournament dashboard
-               alert(`Tournament dashboard for ${id} coming soon!`);
+               const t = tournaments.find(t => t.id === id);
+               if (t) {
+                 setActiveTournament(t);
+                 setActiveGroupIndex(null);
+                 setView('join-tournament');
+               }
             }}
             onDeleteTournament={async (id) => {
+              const t = tournaments.find(t => t.id === id);
               // Remove from lifted state (triggers localStorage persist via useEffect)
               setTournaments(prev => prev.filter(t => t.id !== id));
 
-              // Delete from Firestore
+              // Delete from Firestore using joinCode
               try {
-                await deleteTournamentFromFirestore(id);
+                await deleteTournamentFromFirestore(t?.joinCode ?? id);
               } catch (e) {
                 console.error("Failed to delete tournament from Firestore:", e);
                 alert("Tournament deleted locally, but we couldn't remove it from the cloud. It may still be visible on other devices.");
@@ -331,6 +340,40 @@ const App: React.FC = () => {
             }}
           />
         );
+      case 'join-tournament':
+        return (
+          <JoinTournamentScreen
+            onBack={() => setView('home')}
+            onTournamentJoined={(tournament) => {
+              // Add to local tournaments if not already present
+              setTournaments(prev => {
+                if (prev.some(t => t.joinCode === tournament.joinCode)) return prev;
+                return [...prev, tournament];
+              });
+              setView('tournament-hub');
+            }}
+            onGroupCodeEntered={(tournament, groupIdx) => {
+              setActiveTournament(tournament);
+              setActiveGroupIndex(groupIdx);
+              setView('group-scoring');
+            }}
+          />
+        );
+      case 'group-scoring':
+        if (activeTournament && activeGroupIndex !== null) {
+          return (
+            <GroupScoringScreen
+              tournament={activeTournament}
+              groupIndex={activeGroupIndex}
+              onBack={() => {
+                setActiveTournament(null);
+                setActiveGroupIndex(null);
+                setView('home');
+              }}
+            />
+          );
+        }
+        return <FrontPageScreen onNavigate={handleNavigate} />;
       case 'home':
         return <FrontPageScreen onNavigate={handleNavigate} />;
       case 'setup':

@@ -1,6 +1,16 @@
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { db } from './firebaseService';
 import { Tournament, Player, TournamentGroup } from '../types';
+
+/** Generate a short, memorable tournament join code (8 chars) */
+export const generateTournamentCode = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
 
 /**
  * Shuffles an array of players randomly using the Fisher-Yates algorithm.
@@ -19,14 +29,16 @@ export function shufflePlayers(players: Player[]): Player[] {
  * If the total number doesn't divide evenly by 4, the remaining players 
  * will form the final group (e.g., a 3-ball or 2-ball).
  */
-export function createGroups(players: Player[], groupSize: number = 4): TournamentGroup[] {
+export function createGroups(players: Player[], groupSize: number = 4, joinCode: string = ''): TournamentGroup[] {
   const groups: TournamentGroup[] = [];
   for (let i = 0; i < players.length; i += groupSize) {
     const chunk = players.slice(i, i + groupSize);
+    const groupIndex = groups.length;
     groups.push({
       id: crypto.randomUUID(),
       players: chunk,
       teeTime: '', // Will be assigned next
+      groupCode: joinCode ? `${joinCode}-G${groupIndex + 1}` : '',
     });
   }
   return groups;
@@ -74,10 +86,10 @@ export function assignTeeTimes(
 }
 
 /**
- * Creates a new tournament in Firestore
+ * Creates a new tournament in Firestore, keyed by joinCode for direct lookup
  */
 export async function createLiveTournament(tournament: Tournament): Promise<void> {
-  const docRef = doc(db, 'tournaments', tournament.id);
+  const docRef = doc(db, 'tournaments', tournament.joinCode);
   await setDoc(docRef, {
     ...tournament,
     createdAt: Date.now(),
@@ -86,10 +98,10 @@ export async function createLiveTournament(tournament: Tournament): Promise<void
 }
 
 /**
- * Updates an existing tournament in Firestore
+ * Updates an existing tournament in Firestore (keyed by joinCode)
  */
-export async function syncTournamentToFirestore(tournamentId: string, updates: Partial<Tournament>): Promise<void> {
-  const docRef = doc(db, 'tournaments', tournamentId);
+export async function syncTournamentToFirestore(joinCode: string, updates: Partial<Tournament>): Promise<void> {
+  const docRef = doc(db, 'tournaments', joinCode);
   await updateDoc(docRef, {
     ...updates,
     updatedAt: Date.now()
@@ -97,9 +109,44 @@ export async function syncTournamentToFirestore(tournamentId: string, updates: P
 }
 
 /**
- * Deletes a tournament from Firestore
+ * Deletes a tournament from Firestore (keyed by joinCode)
  */
-export async function deleteTournamentFromFirestore(tournamentId: string): Promise<void> {
-  const docRef = doc(db, 'tournaments', tournamentId);
+export async function deleteTournamentFromFirestore(joinCode: string): Promise<void> {
+  const docRef = doc(db, 'tournaments', joinCode);
   await deleteDoc(docRef);
 }
+
+/**
+ * Fetch a tournament by its join code
+ */
+export async function fetchTournamentByCode(joinCode: string): Promise<Tournament | null> {
+  const docRef = doc(db, 'tournaments', joinCode);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  return snap.data() as Tournament;
+}
+
+/**
+ * Subscribe to real-time updates for a tournament. Returns an unsubscribe function.
+ */
+export const subscribeToTournament = (
+  joinCode: string,
+  onUpdate: (data: Tournament) => void,
+  onError: (error: string) => void,
+): Unsubscribe => {
+  const docRef = doc(db, 'tournaments', joinCode);
+  return onSnapshot(
+    docRef,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onError('Tournament not found.');
+        return;
+      }
+      onUpdate(snapshot.data() as Tournament);
+    },
+    (error) => {
+      console.error('Tournament subscription error:', error);
+      onError('Lost connection to the tournament.');
+    },
+  );
+};

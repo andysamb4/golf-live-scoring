@@ -3,7 +3,7 @@ import { Course, GameType, Tournament, TournamentGroup, Player } from '../types'
 import { BRAMPTON_HEATH } from '../constants';
 import PlayerBulkUpload from './PlayerBulkUpload';
 import CourseSelectionModal from './CourseSelectionModal';
-import { assignTeeTimes, createGroups, shufflePlayers } from '../services/tournamentService';
+import { assignTeeTimes, createGroups, shufflePlayers, generateTournamentCode } from '../services/tournamentService';
 import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
 import { StarIcon } from './icons/StarIcon';
 
@@ -24,6 +24,7 @@ const CreateTournamentScreen: React.FC<CreateTournamentScreenProps> = ({ onBack,
   const [startTime, setStartTime] = useState('08:00');
   const [teeInterval, setTeeInterval] = useState(8);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [joinCode] = useState(() => generateTournamentCode());
 
   const handleNextStep1 = () => {
     if (!name.trim()) {
@@ -53,7 +54,7 @@ const CreateTournamentScreen: React.FC<CreateTournamentScreenProps> = ({ onBack,
 
   const generateGroupings = () => {
     const shuffled = shufflePlayers(players);
-    const generatedGroups = createGroups(shuffled, 4);
+    const generatedGroups = createGroups(shuffled, 4, joinCode);
     const timesAssigned = assignTeeTimes(generatedGroups, startTime, teeInterval);
     setGroups(timesAssigned);
   };
@@ -68,6 +69,7 @@ const CreateTournamentScreen: React.FC<CreateTournamentScreenProps> = ({ onBack,
     setIsSubmitting(true);
     const tournament: Tournament = {
       id: crypto.randomUUID(),
+      joinCode,
       name,
       course,
       gameType,

@@ -47,12 +47,18 @@ const FrontPageScreen: React.FC<FrontPageScreenProps> = ({ onNavigate }) => {
 
           <div className="flex flex-col gap-2 mt-2">
             <h2 className="text-white/90 font-bold text-sm uppercase translate-y-1 px-1 drop-shadow">Tournaments</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => onNavigate('create-tournament')}
                 className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold py-3 rounded-2xl transition-all backdrop-blur-md hover:-translate-y-0.5"
               >
                 Create
+              </button>
+              <button
+                onClick={() => onNavigate('join-tournament')}
+                className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold py-3 rounded-2xl transition-all backdrop-blur-md hover:-translate-y-0.5"
+              >
+                Join
               </button>
               <button
                 onClick={() => onNavigate('tournament-hub')}
