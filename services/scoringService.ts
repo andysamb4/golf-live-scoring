@@ -22,19 +22,17 @@ const calculateShotsReceived = (playerHandicap: number, strokeIndex: number, cou
     return baseShots + (strokeIndex <= extraShotHoles ? 1 : 0);
 };
 
-const calculateStablefordPointsForHole = (grossScore: number, hole: Hole, player: Player, course: Course): number => {
+export const calculateStablefordPointsForHole = (grossScore: number, hole: Hole, player: Player, course: Course): number => {
     const shotsReceived = calculateShotsReceived(player.handicap, hole.strokeIndex, course, player.selectedTee);
     const netScore = grossScore - shotsReceived;
     const scoreRelativeToPar = netScore - hole.par;
 
-    switch (scoreRelativeToPar) {
-        case -3: return 5; // Albatross
-        case -2: return 4; // Eagle
-        case -1: return 3; // Birdie
-        case 0: return 2;  // Par
-        case 1: return 1;  // Bogey
-        default: return 0; // Double Bogey or worse
-    }
+    if (scoreRelativeToPar <= -3) return 5; // Albatross or better
+    if (scoreRelativeToPar === -2) return 4; // Eagle
+    if (scoreRelativeToPar === -1) return 3; // Birdie
+    if (scoreRelativeToPar === 0) return 2;  // Par
+    if (scoreRelativeToPar === 1) return 1;  // Bogey
+    return 0; // Double Bogey or worse
 };
 
 const calculateStablefordTotal = (player: Player, scores: (number | null)[], courseHoles: Hole[], course: Course): CalculatedScore => {

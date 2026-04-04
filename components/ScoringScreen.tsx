@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { GameState, View, Player } from '../types';
+import { GameState, GameType, View, Player } from '../types';
 import type { SyncStatus } from '../App';
-import { calculateScores } from '../services/scoringService';
+import { calculateScores, calculateStablefordPointsForHole } from '../services/scoringService';
 import { isSpeechRecognitionSupported, startListening, parseSpokenScore } from '../services/speechService';
 import { TrophyIcon } from './icons/TrophyIcon';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
@@ -154,16 +154,28 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
       <div className="bg-medium-slate p-6 rounded-lg shadow-lg">
         <h3 className="text-2xl font-semibold mb-4 text-center">Enter Scores</h3>
         <div className="space-y-4">
-          {gameState.players.map(player => (
+          {gameState.players.map(player => {
+            const grossScore = gameState.scores[player.id][currentHole];
+            const stablefordPts = gameState.gameType === GameType.Stableford && grossScore
+              ? calculateStablefordPointsForHole(grossScore, holeData, player, gameState.course)
+              : null;
+            return (
             <div key={player.id} className="grid grid-cols-4 items-center gap-2">
               <span className="font-semibold truncate col-span-2">{player.name} <span className="text-sm text-gray-400">(PH: {player.playingHandicap ?? player.handicap})</span></span>
-              <input
-                type="number"
-                min="1"
-                value={gameState.scores[player.id][currentHole] || ''}
-                onChange={(e) => handleScoreChange(player.id, e.target.value)}
-                className="w-full p-2 text-center bg-dark-slate border border-light-slate rounded-md text-xl font-bold focus:ring-2 focus:ring-forest-green focus:outline-none"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={grossScore || ''}
+                  onChange={(e) => handleScoreChange(player.id, e.target.value)}
+                  className="w-full p-2 text-center bg-dark-slate border border-light-slate rounded-md text-xl font-bold focus:ring-2 focus:ring-forest-green focus:outline-none"
+                />
+                {stablefordPts !== null && (
+                  <span className={`text-sm font-bold whitespace-nowrap ${stablefordPts >= 3 ? 'text-green-400' : stablefordPts === 2 ? 'text-light-green' : stablefordPts === 1 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    ({stablefordPts}pt{stablefordPts !== 1 ? 's' : ''})
+                  </span>
+                )}
+              </div>
               {speechSupported && (
                   <button 
                     onClick={() => handleToggleListening(player)}
@@ -177,7 +189,8 @@ const ScoringScreen: React.FC<ScoringScreenProps> = ({ gameState, setGameState, 
                   </button>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
         {(listeningState.isListening || listeningState.error) && (
             <div className="mt-4 text-center p-3 rounded-md bg-dark-slate">
