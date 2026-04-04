@@ -58,7 +58,7 @@ export interface GameState extends GameSettings {
   groupId?: string;
 }
 
-export type View = 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch';
+export type View = 'home' | 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch' | 'tournament-hub' | 'create-tournament';
 
 /** A member of a handicap group */
 export interface GroupMember {
@@ -123,4 +123,20 @@ export interface Source {
     uri: string;
     title: string;
   }
+}
+
+export interface TournamentGroup {
+  id: string;
+  players: Player[];
+  teeTime: string; // e.g. "08:00 AM" or "08:00"
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  course: Course;
+  gameType: GameType;
+  groups: TournamentGroup[];
+  adminId?: string;
+  status: 'upcoming' | 'live' | 'finished';
 }

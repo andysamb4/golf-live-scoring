@@ -1,20 +1,25 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, GameSettings, LiveGameData, View } from './types';
+import { GameState, GameSettings, LiveGameData, View, Tournament } from './types';
 import SetupScreen from './components/SetupScreen';
 import ScoringScreen from './components/ScoringScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import GroupManagementScreen from './components/GroupManagementScreen';
 import WatchLiveScreen from './components/WatchLiveScreen';
+import TournamentHubScreen from './components/TournamentHubScreen';
+import CreateTournamentScreen from './components/CreateTournamentScreen';
 import { GolfFlagIcon } from './components/icons/GolfFlagIcon';
 import { decodeGameState } from './services/shareService';
 import SpectatorScreen from './components/SpectatorScreen';
 import { createLiveGame, syncGameToFirestore, subscribeToLiveGame } from './services/liveGameService';
 import { applyGroupGameResult } from './services/groupService';
 import { calculateScores } from './services/scoringService';
+import { createLiveTournament, deleteTournamentFromFirestore } from './services/tournamentService';
+import FrontPageScreen from './components/FrontPageScreen';
 
 const STORAGE_KEY_GAME = 'golf_active_game';
 const STORAGE_KEY_CODE = 'golf_live_code';
 const STORAGE_KEY_VIEW = 'golf_view';
+const STORAGE_KEY_TOURNAMENTS = 'golf_tournaments';
 
 const loadFromStorage = <T,>(key: string): T | null => {
   try {
@@ -38,7 +43,8 @@ const App: React.FC = () => {
   const [liveGameCode, setLiveGameCode] = useState<string | null>(() => loadFromStorage<string>(STORAGE_KEY_CODE));
   const [liveSpectatorData, setLiveSpectatorData] = useState<LiveGameData | null>(null);
   const [liveSpectatorError, setLiveSpectatorError] = useState<string | null>(null);
-  const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'setup');
+  const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'home');
+  const [tournaments, setTournaments] = useState<Tournament[]>(() => loadFromStorage<Tournament[]>(STORAGE_KEY_TOURNAMENTS) ?? []);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => loadFromStorage<string>(STORAGE_KEY_CODE) ? 'synced' : 'local-only');
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const liveGameCodeRef = useRef<string | null>(liveGameCode);
@@ -108,6 +114,7 @@ const App: React.FC = () => {
   useEffect(() => { saveToStorage(STORAGE_KEY_GAME, gameState); }, [gameState]);
   useEffect(() => { saveToStorage(STORAGE_KEY_CODE, liveGameCode); }, [liveGameCode]);
   useEffect(() => { saveToStorage(STORAGE_KEY_VIEW, view); }, [view]);
+  useEffect(() => { saveToStorage(STORAGE_KEY_TOURNAMENTS, tournaments); }, [tournaments]);
 
   // On mount: if we have a restored game but no liveGameCode, attempt cloud sync
   useEffect(() => {
@@ -280,26 +287,76 @@ const App: React.FC = () => {
         return <GroupManagementScreen onBack={() => setView('setup')} />;
       case 'watch':
         return <WatchLiveScreen onBack={() => setView('setup')} />;
+      case 'tournament-hub':
+        return (
+          <TournamentHubScreen
+            tournaments={tournaments}
+            onBack={() => setView('home')}
+            onCreateTournament={() => setView('create-tournament')}
+            onViewTournament={(id) => {
+               // Future: Open tournament dashboard
+               alert(`Tournament dashboard for ${id} coming soon!`);
+            }}
+            onDeleteTournament={async (id) => {
+              // Remove from lifted state (triggers localStorage persist via useEffect)
+              setTournaments(prev => prev.filter(t => t.id !== id));
+
+              // Delete from Firestore
+              try {
+                await deleteTournamentFromFirestore(id);
+              } catch (e) {
+                console.error("Failed to delete tournament from Firestore:", e);
+                alert("Tournament deleted locally, but we couldn't remove it from the cloud. It may still be visible on other devices.");
+              }
+            }}
+          />
+        );
+      case 'create-tournament':
+        return (
+          <CreateTournamentScreen
+            onBack={() => setView('tournament-hub')}
+            onTournamentCreated={async (tournament) => {
+              // Add to lifted state (triggers localStorage persist via useEffect)
+              setTournaments(prev => [...prev, tournament]);
+
+              // Firebase sync (prep for clubhouse viewing later)
+              try {
+                await createLiveTournament(tournament);
+              } catch (e) {
+                console.error("Failed to sync tournament to Firestore:", e);
+                alert("Tournament saved locally, but failed to sync to the cloud. Live clubhouse viewing will be unavailable until synchronized.");
+              }
+
+              setView('tournament-hub');
+            }}
+          />
+        );
+      case 'home':
+        return <FrontPageScreen onNavigate={handleNavigate} />;
       case 'setup':
       default:
-        return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} onWatchLive={() => setView('watch')} />;
+        return <SetupScreen onStartGame={handleStartGame} onManageGroups={handleManageGroups} onBack={() => setView('home')} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-dark-slate text-off-white font-sans">
-      <header className="bg-dark-green p-4 shadow-lg">
-        <div className="container mx-auto flex items-center justify-center">
-            <GolfFlagIcon className="h-8 w-8 mr-3 text-light-green"/>
-            <h1 className="text-3xl font-bold tracking-wider">Golf Live Scoring</h1>
-        </div>
-      </header>
-      <main className="container mx-auto p-4 md:p-6">
+      {view !== 'home' && !liveSpectatorData && !spectatorGameState && (
+        <header className="bg-dark-green p-4 shadow-lg">
+          <div className="container mx-auto flex items-center justify-center">
+              <GolfFlagIcon className="h-8 w-8 mr-3 text-light-green"/>
+              <h1 className="text-3xl font-bold tracking-wider">Golf Live Scoring</h1>
+          </div>
+        </header>
+      )}
+      <main className={view === 'home' || liveSpectatorData || spectatorGameState ? '' : "container mx-auto p-4 md:p-6"}>
         {renderContent()}
       </main>
-      <footer className="text-center p-4 text-gray-400 text-sm mt-8">
-        <p>Built for the modern golfer. &copy; {new Date().getFullYear()}</p>
-      </footer>
+      {view !== 'home' && !liveSpectatorData && !spectatorGameState && (
+        <footer className="text-center p-4 text-gray-400 text-sm mt-8">
+          <p>Built for the modern golfer. &copy; {new Date().getFullYear()}</p>
+        </footer>
+      )}
     </div>
   );
 };

@@ -34,10 +34,10 @@ const applyTee = (course: Course, tee: TeeSet): Course => ({
 interface SetupScreenProps {
   onStartGame: (settings: GameSettings) => void;
   onManageGroups: () => void;
-  onWatchLive?: () => void;
+  onBack?: () => void;
 }
 
-const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, onWatchLive }) => {
+const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, onBack }) => {
   const [players, setPlayers] = useState<Player[]>([
     { id: `PLY-${Date.now()}`, name: 'Player 1', handicap: 18 },
     { id: `PLY-${Date.now() + 1}`, name: 'Player 2', handicap: 10 },
@@ -183,6 +183,14 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
 
   return (
     <>
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="mb-4 flex items-center text-gray-400 hover:text-white transition-colors"
+        >
+          <span className="mr-2 text-xl">&larr;</span> Back to Home
+        </button>
+      )}
       <div className="space-y-8 max-w-2xl mx-auto">
         <div className="bg-medium-slate p-6 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold mb-4 text-center text-light-green flex items-center justify-center gap-2">
@@ -399,19 +407,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onManageGroups, 
         >
           Start Game
         </button>
-
-        {onWatchLive && (
-          <button
-            onClick={onWatchLive}
-            className="w-full p-4 bg-blue-700 hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-            </span>
-            Watch Live Games
-          </button>
-        )}
       </div>
       <CourseSelectionModal 
         isOpen={isCourseModalOpen}
