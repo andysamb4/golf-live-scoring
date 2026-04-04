@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { LiveGameData } from '../types';
+import { LiveGameData, GameState } from '../types';
 import { listLiveGames } from '../services/liveGameService';
+import { calculateScores } from '../services/scoringService';
 import { TrophyIcon } from './icons/TrophyIcon';
 
 interface WatchLiveScreenProps {
@@ -9,30 +10,26 @@ interface WatchLiveScreenProps {
 
 /** Derive the leading player name and score summary from a live game */
 const getLeader = (game: LiveGameData): { name: string; through: number } => {
-  const isStableford = game.gameType === 'Stableford';
-  let bestName = '';
-  let bestScore = isStableford ? -Infinity : Infinity;
-  let bestThrough = 0;
+  // Build a GameState-compatible object so we can reuse the full scoring logic
+  // (handles Stableford points, handicaps, tees, match play, skins, etc.)
+  const gameState: GameState = {
+    id: game.id,
+    players: game.players,
+    course: game.course,
+    gameType: game.gameType,
+    scores: game.scores,
+    currentHole: game.currentHole,
+    status: game.status,
+  };
 
-  for (const player of game.players) {
-    const holes = game.scores[player.id] ?? [];
-    let total = 0;
-    let through = 0;
-    for (let i = 0; i < holes.length; i++) {
-      if (holes[i] != null) {
-        total += holes[i]!;
-        through++;
-      }
-    }
-    const isBetter = isStableford ? total > bestScore : total < bestScore;
-    if (through > 0 && (bestName === '' || isBetter)) {
-      bestName = player.name;
-      bestScore = total;
-      bestThrough = through;
-    }
+  const calculated = calculateScores(gameState);
+  if (calculated.length === 0) {
+    return { name: game.players[0]?.name || 'Unknown', through: 0 };
   }
 
-  return { name: bestName || game.players[0]?.name || 'Unknown', through: bestThrough };
+  // calculateScores already sorts with the leader first
+  const leader = calculated[0];
+  return { name: leader.playerName, through: leader.through };
 };
 
 const WatchLiveScreen: React.FC<WatchLiveScreenProps> = ({ onBack }) => {

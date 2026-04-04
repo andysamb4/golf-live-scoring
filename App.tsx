@@ -54,11 +54,11 @@ const App: React.FC = () => {
       }
 
       if (hash.startsWith('#/live/')) {
-        // Real-time live game spectator
+        // Real-time live game spectator — do NOT clear gameState so any
+        // in-progress game is preserved while watching
         const gameCode = hash.substring(7); // length of '#/live/'
         setSpectatorGameState(null);
         setLiveSpectatorError(null);
-        setGameState(null);
 
         unsubscribeRef.current = subscribeToLiveGame(
           gameCode,
@@ -72,14 +72,13 @@ const App: React.FC = () => {
           },
         );
       } else if (hash.startsWith('#/view/')) {
-        // Static snapshot spectator (legacy)
+        // Static snapshot spectator (legacy) — preserve gameState
         setLiveSpectatorData(null);
         setLiveSpectatorError(null);
         const encodedState = hash.substring(7);
         const decoded = decodeGameState(encodedState);
         if (decoded) {
           setSpectatorGameState(decoded);
-          setGameState(null);
         } else {
           alert("The shared link is invalid or corrupted.");
           window.location.hash = '';
@@ -225,6 +224,13 @@ const App: React.FC = () => {
   }, []);
 
   const renderContent = () => {
+    const handleExitSpectator = () => {
+      window.location.hash = '';
+      setLiveSpectatorData(null);
+      setLiveSpectatorError(null);
+      setSpectatorGameState(null);
+    };
+
     // Real-time live spectator
     if (liveSpectatorData) {
       const liveGameState: GameState = {
@@ -236,22 +242,27 @@ const App: React.FC = () => {
         currentHole: liveSpectatorData.currentHole,
         status: liveSpectatorData.status,
       };
-      return <SpectatorScreen gameState={liveGameState} isLive />;
+      return <SpectatorScreen gameState={liveGameState} isLive onBack={handleExitSpectator} hasActiveGame={!!gameState} />;
     }
 
     // Live spectator error
     if (liveSpectatorError) {
       return (
-        <div className="bg-red-900 border-l-4 border-red-400 text-red-100 p-6 rounded-lg" role="alert">
-          <p className="font-bold text-xl">Game Not Found</p>
-          <p className="mt-2">{liveSpectatorError}</p>
+        <div className="space-y-4">
+          <button onClick={handleExitSpectator} className="px-4 py-2 bg-light-slate hover:bg-gray-500 text-white rounded-lg transition-colors">
+            &larr; Back
+          </button>
+          <div className="bg-red-900 border-l-4 border-red-400 text-red-100 p-6 rounded-lg" role="alert">
+            <p className="font-bold text-xl">Game Not Found</p>
+            <p className="mt-2">{liveSpectatorError}</p>
+          </div>
         </div>
       );
     }
 
     // Static snapshot spectator (legacy)
     if (spectatorGameState) {
-      return <SpectatorScreen gameState={spectatorGameState} />;
+      return <SpectatorScreen gameState={spectatorGameState} onBack={handleExitSpectator} hasActiveGame={!!gameState} />;
     }
 
     switch (view) {

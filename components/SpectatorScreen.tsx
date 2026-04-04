@@ -7,15 +7,27 @@ import { TrophyIcon } from './icons/TrophyIcon';
 interface SpectatorScreenProps {
   gameState: GameState;
   isLive?: boolean;
+  onBack?: () => void;
+  hasActiveGame?: boolean;
 }
 
-const SpectatorScreen: React.FC<SpectatorScreenProps> = ({ gameState, isLive = false }) => {
+const SpectatorScreen: React.FC<SpectatorScreenProps> = ({ gameState, isLive = false, onBack, hasActiveGame = false }) => {
     const calculatedScores = useMemo(() => calculateScores(gameState), [gameState]);
     const isMatchPlay = gameState.gameType === 'Match Play';
     const scoreLabel = isMatchPlay ? '' : gameState.gameType === 'Medal' ? 'Strokes' : gameState.gameType === 'Skins' ? 'Skins' : 'Points';
 
     return (
         <div className="space-y-8">
+            {onBack && (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={onBack}
+                  className="px-4 py-2 bg-light-slate hover:bg-gray-500 text-white rounded-lg transition-colors"
+                >
+                  &larr; {hasActiveGame ? 'Back to My Game' : 'Back'}
+                </button>
+              </div>
+            )}
             {isLive ? (
               <div className="bg-green-900 border-l-4 border-green-400 text-green-100 p-4 rounded-lg" role="status">
                 <p className="font-bold flex items-center gap-2">
