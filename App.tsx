@@ -17,6 +17,8 @@ import { createLiveTournament, deleteTournamentFromFirestore } from './services/
 import FrontPageScreen from './components/FrontPageScreen';
 import JoinTournamentScreen from './components/JoinTournamentScreen';
 import GroupScoringScreen from './components/GroupScoringScreen';
+import ResultsScreen from './components/ResultsScreen';
+import ResultsHistoryScreen from './components/ResultsHistoryScreen';
 
 const STORAGE_KEY_GAME = 'golf_active_game';
 const STORAGE_KEY_CODE = 'golf_live_code';
@@ -48,6 +50,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>(() => loadFromStorage<View>(STORAGE_KEY_VIEW) ?? 'home');
   const [tournaments, setTournaments] = useState<Tournament[]>(() => loadFromStorage<Tournament[]>(STORAGE_KEY_TOURNAMENTS) ?? []);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => loadFromStorage<string>(STORAGE_KEY_CODE) ? 'synced' : 'local-only');
+  const [finishedGameState, setFinishedGameState] = useState<GameState | null>(null);
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -195,8 +198,23 @@ const App: React.FC = () => {
   }, []);
 
   const handleEndGame = useCallback(async () => {
+    if (!gameState) return;
+
+    const now = Date.now();
+    const finishedState: GameState = { ...gameState, status: 'finished', finishedAt: now };
+
+    // Mark as finished in Firestore so it disappears from the live games list
+    const code = liveGameCodeRef.current;
+    if (code) {
+      try {
+        await syncGameToFirestore(code, finishedState);
+      } catch (err) {
+        console.error('Failed to mark game as finished in Firestore:', err);
+      }
+    }
+
     // Apply group handicap adjustments if this was a group game
-    if (gameState?.groupId) {
+    if (gameState.groupId) {
       const scores = calculateScores(gameState);
       const finishingOrder = scores.map(s => s.playerName);
       const updatedGroup = await applyGroupGameResult(gameState.groupId, gameState.course.name, finishingOrder);
@@ -210,10 +228,12 @@ const App: React.FC = () => {
         alert(`Group handicaps updated!\n\n${adjustmentsSummary}`);
       }
     }
+
+    setFinishedGameState(finishedState);
     setGameState(null);
     setLiveGameCode(null);
     setSyncStatus('local-only');
-    setView('setup');
+    setView('results');
   }, [gameState]);
 
   const handleManageGroups = useCallback(() => {
@@ -277,6 +297,14 @@ const App: React.FC = () => {
     }
 
     switch (view) {
+      case 'results':
+        if (finishedGameState) {
+          return <ResultsScreen gameState={finishedGameState} onDone={() => { setFinishedGameState(null); setView('setup'); }} />;
+        }
+        setView('setup');
+        return null;
+      case 'results-history':
+        return <ResultsHistoryScreen onBack={() => setView('home')} />;
       case 'scoring':
         if (gameState) {
           return <ScoringScreen gameState={gameState} onUpdateScore={handleUpdateScore} onNavigate={handleNavigate} setGameState={handleSetGameState} onEndGame={handleEndGame} liveGameCode={liveGameCode} syncStatus={syncStatus} onRetrySync={handleRetrySync} />;

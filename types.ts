@@ -56,9 +56,11 @@ export interface GameState extends GameSettings {
   status: 'playing' | 'finished';
   /** If this is a group game, the group ID */
   groupId?: string;
+  /** Unix ms timestamp when the game was finished */
+  finishedAt?: number;
 }
 
-export type View = 'home' | 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch' | 'tournament-hub' | 'create-tournament' | 'join-tournament' | 'group-scoring';
+export type View = 'home' | 'setup' | 'scoring' | 'leaderboard' | 'groups' | 'watch' | 'tournament-hub' | 'create-tournament' | 'join-tournament' | 'group-scoring' | 'results' | 'results-history';
 
 /** A member of a handicap group */
 export interface GroupMember {

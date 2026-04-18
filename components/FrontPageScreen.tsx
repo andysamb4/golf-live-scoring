@@ -69,8 +69,8 @@ const FrontPageScreen: React.FC<FrontPageScreenProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Secondary Action */}
-          <div className="mt-2 pt-4 border-t border-white/10">
+          {/* Secondary Actions */}
+          <div className="mt-2 pt-4 border-t border-white/10 flex flex-col gap-1">
             <button
               onClick={() => onNavigate('watch')}
               className="w-full flex items-center justify-center gap-2 text-white/90 hover:text-white font-semibold py-3 rounded-xl border border-transparent hover:border-white/20 hover:bg-white/5 transition-all"
@@ -80,6 +80,12 @@ const FrontPageScreen: React.FC<FrontPageScreenProps> = ({ onNavigate }) => {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
               </span>
               Follow a Live Game
+            </button>
+            <button
+              onClick={() => onNavigate('results-history')}
+              className="w-full flex items-center justify-center gap-2 text-white/70 hover:text-white font-semibold py-3 rounded-xl border border-transparent hover:border-white/20 hover:bg-white/5 transition-all"
+            >
+              Past Results
             </button>
           </div>
           

@@ -1,4 +1,4 @@
-import { doc, setDoc, onSnapshot, updateDoc, Unsubscribe, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, updateDoc, Unsubscribe, collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebaseService';
 import { GameState, LiveGameData } from '../types';
 
@@ -53,6 +53,14 @@ export const syncGameToFirestore = async (gameCode: string, gameState: GameState
 export const listLiveGames = async (): Promise<LiveGameData[]> => {
   const gamesCol = collection(db, 'games');
   const q = query(gamesCol, where('status', '==', 'playing'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => d.data() as LiveGameData);
+};
+
+/** Fetch the most recent finished games, newest first */
+export const listFinishedGames = async (maxResults = 50): Promise<LiveGameData[]> => {
+  const gamesCol = collection(db, 'games');
+  const q = query(gamesCol, where('status', '==', 'finished'), orderBy('updatedAt', 'desc'), limit(maxResults));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(d => d.data() as LiveGameData);
 };
