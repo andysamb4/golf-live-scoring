@@ -49,12 +49,15 @@ export const syncGameToFirestore = async (gameCode: string, gameState: GameState
   });
 };
 
-/** Fetch all currently active (playing) games */
+/** Fetch all currently active (playing) games, ignoring stale games older than 24h */
 export const listLiveGames = async (): Promise<LiveGameData[]> => {
   const gamesCol = collection(db, 'games');
   const q = query(gamesCol, where('status', '==', 'playing'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => d.data() as LiveGameData);
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  return snapshot.docs
+    .map(d => d.data() as LiveGameData)
+    .filter(g => g.updatedAt > cutoff);
 };
 
 /** Fetch the most recent finished games, newest first */

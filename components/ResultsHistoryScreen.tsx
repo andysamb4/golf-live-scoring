@@ -41,7 +41,10 @@ const ResultsHistoryScreen: React.FC<ResultsHistoryScreenProps> = ({ onBack }) =
   useEffect(() => {
     listFinishedGames()
       .then(setGames)
-      .catch(() => setError('Could not load results. Please try again.'))
+      .catch((err) => {
+        console.error('listFinishedGames failed:', err);
+        setError(`Could not load results: ${err?.message ?? err}`);
+      })
       .finally(() => setLoading(false));
   }, []);
 
