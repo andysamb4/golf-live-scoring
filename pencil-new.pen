@@ -1,0 +1,256 @@
+{
+  "version": "2.10",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#FFFFFF",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "qzkoT",
+      "x": 0,
+      "y": 0,
+      "name": "Front Page",
+      "width": 390,
+      "height": 844,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "./images/generated-1775325456574.png",
+        "mode": "fill"
+      },
+      "layout": "vertical",
+      "padding": 16,
+      "justifyContent": "end",
+      "children": [
+        {
+          "type": "frame",
+          "id": "qLZYU",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "bg",
+          "width": 390,
+          "height": 844,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./images/generated-1775325498342.png",
+            "mode": "fill"
+          }
+        },
+        {
+          "type": "frame",
+          "id": "aR0l2",
+          "name": "uiCard",
+          "width": "fill_container",
+          "fill": "$surface.primary",
+          "cornerRadius": "$rounded.2xl",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000020",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "blur": 24
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "7NO6N",
+              "name": "headerGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "M8Bdu",
+                  "name": "title",
+                  "fill": "$foreground.primary",
+                  "content": "LIVE SCORING",
+                  "fontFamily": "Geist",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "8MK4Y",
+                  "name": "subtitle",
+                  "fill": "$foreground.secondary",
+                  "content": "Welcome back to the course.",
+                  "fontFamily": "Geist",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "0n88w",
+              "name": "btnStart",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "$accent.primary",
+              "cornerRadius": "$rounded.xl",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "7r9HD",
+                  "name": "btnStartText",
+                  "fill": "$surface.primary",
+                  "content": "Start Round",
+                  "fontFamily": "Geist",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pGvl1",
+              "name": "btnCreateTourney",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "$surface.inverse",
+              "cornerRadius": "$rounded.xl",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XNevp",
+                  "name": "btnCTText",
+                  "fill": "$surface.primary",
+                  "content": "Create Tournament",
+                  "fontFamily": "Geist",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qzDmU",
+              "name": "btnPlayTourney",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#00000000",
+              "cornerRadius": "$rounded.xl",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$border.subtle"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e01Xr",
+                  "name": "btnPTText",
+                  "fill": "$foreground.primary",
+                  "content": "Play in Tournament",
+                  "fontFamily": "Geist",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EYpBM",
+              "name": "secondRow",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ZFbZA",
+                  "name": "btnFollow",
+                  "width": "fill_container",
+                  "height": 48,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "13tig",
+                      "name": "btnFollowText",
+                      "fill": "$foreground.secondary",
+                      "content": "Follow a live game",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent.primary": {
+      "type": "color",
+      "value": "#2D6B3F"
+    },
+    "border.subtle": {
+      "type": "color",
+      "value": "#F4F5F5"
+    },
+    "foreground.inverse": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "foreground.muted": {
+      "type": "color",
+      "value": "#808A80"
+    },
+    "foreground.primary": {
+      "type": "color",
+      "value": "#1E3322"
+    },
+    "foreground.secondary": {
+      "type": "color",
+      "value": "#6B7B6B"
+    },
+    "rounded.2xl": {
+      "type": "number",
+      "value": 16
+    },
+    "rounded.none": {
+      "type": "number",
+      "value": 0
+    },
+    "rounded.xl": {
+      "type": "number",
+      "value": 12
+    },
+    "surface.inverse": {
+      "type": "color",
+      "value": "#1E3322"
+    },
+    "surface.primary": {
+      "type": "color",
+      "value": "#FFFFFF"
+    }
+  }
+}

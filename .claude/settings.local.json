@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git -C /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app status)",
+      "Bash(git -C /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app log --oneline -5)",
+      "Bash(git -C /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app push)",
+      "Bash(npx firebase-tools *)",
+      "Bash(npx firebase *)",
+      "Bash(npm --prefix /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app run build)",
+      "Bash(git -C /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app add services/liveGameService.ts components/ResultsHistoryScreen.tsx)",
+      "Bash(git -C /c/Users/andys/.gemini/antigravity/scratch/Golf_scoring_app commit -m ' *)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
